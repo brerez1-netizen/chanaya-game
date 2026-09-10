@@ -83,7 +83,15 @@ eq(mb(["regular", "regular", "regular"], 7.80).need, 7.80,
    "שלושה רגילים: 2.70+2.40+2.70, וזה בדיוק ה-7.80 שבספר");
 eq(mb(["regular", "regular"], 7.80).need, 5.40,
    "שניים רגילים: 2.70+2.70, וזה בדיוק ה-5.40 שבספר");
-eq(mb(["regular"], 7.80).need, 2.70, "תא בודד נחשב ליד עמוד");
+eq(mb(["regular"], 7.80).need, 3.00,
+   "תא בודד במפרץ הוא בין שני עמודים, וזה בדיוק ה-3.00 שבספר");
+
+console.log("\n== שלוש העמודות של הספר משוחזרות במלואן ==");
+[[1, 3.00, "תא יחיד בין עמודים/קירות"],
+ [2, 5.40, "משטח ל-2 תאים"],
+ [3, 7.80, "משטח ל-3 תאים"]].forEach(([n, exp, label]) => {
+  eq(mb(Array(n).fill("regular"), 12).need, exp, label);
+});
 eq(mb(["accessible", "regular"], 7.80).need, 6.20, "נגיש 3.50 ועוד רגיל 2.70");
 is(mb(["accessible", "regular"], 7.80).legal, true, "נגיש ועוד רגיל נכנסים במפרץ 7.80");
 eq(mb(["accessible", "regular", "regular"], 7.80).need, 8.60, "נגיש ועוד שניים: 3.50+2.40+2.70");
@@ -93,6 +101,23 @@ eq(mb(["accessibleTall", "regular"], 7.80).need, 7.30, "נגיש לרכב גבו
 is(mb(["accessibleTall", "regular"], 7.80).legal, true, "ונכנס, בקושי");
 is(mb([], 7.80).legal, true, "מפרץ ריק חוקי");
 is(mb(["regular", "regular", "regular", "regular"], 7.80).legal, false, "ארבעה רגילים לא נכנסים");
+
+console.log("\n== בדיקת התכנון כשהסטודנט בוחר את הרוחב ==");
+const D = (stalls, span) => R.checkDesign({ level: 1, aisle: 6.20, stalls, clearSpan: span });
+const reg = (w) => ({ kind: "regular", w });
+is(D([reg(2.70), reg(2.40), reg(2.70)], 7.80).legal, true, "הסידור הנכון: 2.70 / 2.40 / 2.70");
+is(D([reg(2.40), reg(2.40), reg(2.70)], 7.80).legal, false,
+   "תא קצה ברוחב 2.40 נפסל, הוא ליד עמוד וצריך 2.70");
+eq(D([reg(2.40), reg(2.40), reg(2.70)], 7.80).parts[0].min, 2.70, "המינימום שמוצג לתא הקצה");
+is(D([reg(2.70), reg(2.70), reg(2.70)], 8.30).legal, true,
+   "רוחב גדול מהמינימום מותר כל עוד הסכום נכנס");
+is(D([reg(3.00), reg(3.00), reg(2.70)], 7.80).legal, false, "סכום שעולה על המרווח נפסל");
+eq(D([reg(3.00), reg(3.00), reg(2.70)], 7.80).sum, 8.70, "והסכום מוצג");
+is(D([reg(2.70)], 4.50).legal, false, "תא בודד ברוחב 2.70 נפסל, בין עמודים צריך 3.00");
+is(D([reg(3.00)], 4.50).legal, true, "ובשלושה מטר הוא עובר");
+is(D([{ kind: "accessible", w: 3.50 }], 4.50).legal, true, "תא נגיש 3.50 נכנס במרווח 4.50");
+is(D([{ kind: "accessible", w: 3.00 }], 4.50).legal, false, "תא נגיש ברוחב 3.00 נפסל");
+is(D([], 7.80).legal, true, "מפרץ ריק חוקי");
 
 console.log("\n==========================");
 console.log(fail ? `נכשלו ${fail} בדיקות` : "כל הבדיקות עברו");

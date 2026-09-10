@@ -187,9 +187,12 @@
     }
     const wOpen = row[KIND_COL.open];
     const wBeside = row[KIND_COL.beside];
+    const wBetween = row[KIND_COL.between];
     const parts = stalls.map((kind, i) => {
       if (kind === "accessible") return { kind, w: DIMS.accessibleRegular, why: "תא נגיש, רכב רגיל, ב.3" };
       if (kind === "accessibleTall") return { kind, w: DIMS.accessibleTall, why: "תא נגיש, רכב גבוה, ב.3" };
+      // תא בודד במפרץ תחום משני צדדיו הוא "בין עמודים", ולספר יש לזה עמודה משלו.
+      if (n === 1) return { kind, w: wBetween, why: "בין שני עמודים" };
       const edge = i === 0 || i === n - 1;
       return { kind, w: edge ? wBeside : wOpen, why: edge ? "ליד עמוד" : "בשטח פנוי" };
     });
@@ -200,6 +203,59 @@
       code: legal ? "ok" : "span-too-small",
       note: legal ? null
         : "הרוחב הנדרש " + need.toFixed(2) + " מ' עולה על המרווח הפנוי " + clearSpan.toFixed(2) + " מ'",
+    };
+  }
+
+  /**
+   * הרוחב המינימלי לכל תא במפרץ, לפי מיקומו.
+   * מחזיר מערך באורך n עם {min, why}.
+   */
+  function minWidths(level, aisle, kinds) {
+    const row = rowForAisle(level, aisle);
+    if (!row) return null;
+    const n = kinds.length;
+    return kinds.map((kind, i) => {
+      if (kind === "accessible") return { min: DIMS.accessibleRegular, why: "תא נגיש לרכב רגיל, ב.3" };
+      if (kind === "accessibleTall") return { min: DIMS.accessibleTall, why: "תא נגיש לרכב גבוה, ב.3" };
+      if (n === 1) return { min: row[KIND_COL.between], why: "תא יחיד בין עמודים או קירות" };
+      const edge = i === 0 || i === n - 1;
+      return edge ? { min: row[KIND_COL.beside], why: "תא ליד עמוד או קיר" }
+                  : { min: row[KIND_COL.open], why: "תא בשטח פנוי" };
+    });
+  }
+
+  /**
+   * בדיקת התכנון של הסטודנט, כשהוא בוחר בעצמו את רוחב כל תא.
+   * stalls: [{ kind, w }]. מחזיר פסיקה לכל תא בנפרד וגם למפרץ כולו.
+   */
+  function checkDesign(opts) {
+    const { level, aisle, stalls, clearSpan } = opts;
+    if (!stalls.length) {
+      return { legal: true, empty: true, parts: [], sum: 0, have: clearSpan, note: "מפרץ ריק" };
+    }
+    const mins = minWidths(level, aisle, stalls.map((s) => s.kind));
+    if (!mins) {
+      return { legal: false, parts: [], sum: 0, have: clearSpan, code: "aisle-too-narrow",
+               note: "רוחב המעבר צר מכל מה שמופיע בטבלה ב.4 לרמת שרות " + level };
+    }
+    const parts = stalls.map((s, i) => {
+      const m = mins[i];
+      const ok = s.w + EPS >= m.min;
+      return {
+        kind: s.kind, w: s.w, min: m.min, why: m.why, ok,
+        note: ok ? null : "סימנת " + s.w.toFixed(2) + " מ', והמינימום ל" + m.why.split(",")[0] + " הוא " + m.min.toFixed(2) + " מ'",
+      };
+    });
+    const sum = Math.round(parts.reduce((a, p) => a + p.w, 0) * 100) / 100;
+    const fits = sum <= clearSpan + EPS;
+    const allWide = parts.every((p) => p.ok);
+    return {
+      legal: fits && allWide,
+      parts, sum, have: clearSpan,
+      code: !allWide ? "stall-too-narrow" : (!fits ? "span-too-small" : "ok"),
+      note: !fits
+        ? "סך הרוחב " + sum.toFixed(2) + " מ' עולה על המרווח הפנוי " + clearSpan.toFixed(2) + " מ'"
+        : (!allWide ? "יש תא צר מהמינימום" : null),
     };
   }
 
@@ -239,6 +295,7 @@
 
   root.ParkingRules = {
     AISLE_TABLES, DIMS, RAMP, EPS,
-    rowForAisle, requiredWidth, checkBay, checkMixedBay, aisleFromDepth, roundUpStalls, checkRamp,
+    rowForAisle, requiredWidth, checkBay, checkMixedBay, minWidths, checkDesign,
+    aisleFromDepth, roundUpStalls, checkRamp,
   };
 })(typeof window !== "undefined" ? window : globalThis);
