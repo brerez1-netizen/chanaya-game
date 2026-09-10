@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#0e1420">
+<title>תכנון חניון תת קרקעי</title>
+<style>
+  :root{
+    --bg:#0e1420; --panel:#18202f; --panel2:#1f2a3d; --line:#2c3a52;
+    --txt:#eaf0fa; --dim:#93a4bf; --accent:#4ea3f0; --ok:#28c076; --bad:#e5484d;
+    --book:#f0b429; --slab:#e8ecf1; --stall:#4ea3f0; --acc:#8e6bff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  body{background:var(--bg);color:var(--txt);min-height:100vh;
+       font-family:"Segoe UI",Arial,sans-serif;display:flex;flex-direction:column}
+  .bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);
+       border-bottom:1px solid var(--line);position:sticky;top:0;z-index:9;flex-wrap:wrap}
+  .brand{font-size:19px;font-weight:700;color:var(--accent)}
+  .spacer{flex:1}
+  .pill{background:var(--panel2);border:1px solid var(--line);border-radius:18px;
+        padding:4px 12px;font-size:14px;color:var(--dim);white-space:nowrap}
+  .pill b{color:var(--txt)}
+  .pill.good{border-color:rgba(40,192,118,.6);color:#8fe3b8}
+  .pill.warn{border-color:rgba(240,180,41,.6);color:#f4dfae}
+
+  .wrap{flex:1;width:100%;max-width:1180px;margin:0 auto;padding:18px 16px 60px;
+        display:flex;flex-direction:column;gap:16px}
+  h1{font-size:28px;color:var(--accent)}
+  h2{font-size:20px;margin-bottom:2px}
+  .lead{font-size:17px;line-height:1.65;color:#c3d0e4}
+  .lead b{color:var(--book)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+  .brief dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:16px;margin-top:8px}
+  .brief dt{color:var(--dim)}
+  .brief dd{font-weight:600}
+
+  .answers{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+  .ans{display:flex;gap:12px;align-items:flex-start;text-align:start;background:var(--panel2);
+       border:2px solid var(--line);border-radius:12px;padding:13px 15px;font-size:17px;
+       line-height:1.45;font-weight:600;color:var(--txt);font-family:inherit;cursor:pointer}
+  .ans .n{flex:none;width:30px;height:30px;border-radius:8px;background:var(--panel);
+          display:flex;align-items:center;justify-content:center;font-size:16px}
+  .ans.right{border-color:var(--ok);background:rgba(40,192,118,.14)}
+  .ans.right .n{background:var(--ok);color:#06210f}
+  .ans.wrong{border-color:var(--bad);background:rgba(229,72,77,.14)}
+  .ans.dim{opacity:.45}
+  .ans:disabled{cursor:default}
+
+  .booknote{background:rgba(240,180,41,.10);border:1px solid rgba(240,180,41,.35);
+            border-radius:12px;padding:13px 15px;font-size:16px;line-height:1.55;color:#f4dfae}
+  .booknote b{color:var(--book)}
+  .explain{background:var(--panel2);border-inline-start:4px solid var(--accent);border-radius:10px;
+           padding:13px 15px;font-size:16px;line-height:1.6;color:#dce6f5}
+
+  /* ---------- הלוח ---------- */
+  .planwrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+            padding:10px;overflow-x:auto}
+  svg{display:block;min-width:760px;width:100%;height:auto}
+  .baytools{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--dim);margin-top:8px}
+  .legend i{display:inline-block;width:14px;height:14px;border-radius:3px;margin-inline-end:6px;
+            vertical-align:-2px}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  button.go{font-family:inherit;font-size:17px;font-weight:700;padding:13px 22px;border:none;
+            border-radius:11px;background:var(--accent);color:#04182b;cursor:pointer}
+  button.go.ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line)}
+  button.go:disabled{opacity:.45;cursor:default}
+
+  .verdict{display:flex;flex-direction:column;gap:10px}
+  .vrow{background:var(--panel);border:1px solid var(--line);border-radius:11px;padding:12px 14px;
+        font-size:15px;line-height:1.55}
+  .vrow.bad{border-color:rgba(229,72,77,.55)}
+  .vrow.good{border-color:rgba(40,192,118,.4)}
+  .vrow .h{font-weight:700;margin-bottom:3px}
+  .vrow .calc{color:var(--dim);font-size:14px;direction:ltr;text-align:right}
+  .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .k{font-size:14px;color:var(--dim)}
+  .stat .v{font-size:30px;font-weight:700;margin:4px 0 2px}
+  .stat.bad .v{color:var(--bad)} .stat.good .v{color:var(--ok)}
+  .hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="brand">תכנון חניון תת קרקעי</span>
+  <span class="pill" id="pillLevel"></span>
+  <span class="spacer"></span>
+  <span class="pill" id="pillCount"></span>
+  <span class="pill" id="pillAcc"></span>
+</div>
+
+<div class="wrap" id="wrap"></div>
+
+<script src="js/rules.js"></script>
+<script src="js/board.js"></script>
+<script>
+/* =====================================================================
+   תרגול אישי לשיעור 21, חניה.
+   הסטודנט מקבל קליפה של חניון תת קרקעי קיים, עם רשת עמודים ומעבר בעלי
+   מידות אמיתיות, ומתכנן בתוכה את תאי החניה. כל תא נבדק מול פרק 26 של
+   מדריך דקל בזמן ההגשה, לא תוך כדי, כדי לאלץ לפתוח את הספר לפני שמסמנים.
+   ===================================================================== */
+const R = window.ParkingRules;
+const B = window.parkingBoard;
+const $ = (id) => document.getElementById(id);
+
+/* ---------------------- התדריך ---------------------- */
+const BRIEF = {
+  units: 24,
+  zone: "ב'",
+  quotaPerUnit: 1.0,
+  accessibleRequired: 2,
+  get quota() { return R.roundUpStalls(this.units * this.quotaPerUnit); },
+};
+
+const LEVEL_Q = {
+  q: "לפי איזו רמת שרות מתכננים את החניון הזה?",
+  options: [
+    { t: "רמת שרות 3, כי המשתמשים הם דיירים קבועים ולא מבקרים אקראיים", ok: false,
+      why: "סוג המשתמשים הוא אחד השיקולים שהמסמך מונה, אבל הוא לא מספיק לבדו. ההגדרה היא של הרשות המקומית, לא של המתכנן." },
+    { t: "רמת שרות 1, כי הרשות המקומית לא הגדירה אזורי רמות שרות במרחב התכנון", ok: true,
+      why: "זה בדיוק מה שכתוב בספר: בהעדר הגדרה של הרשות המקומית, חובה להתקין חניונים ברמת שרות 1, שהיא המחמירה מכולן." },
+    { t: "רמת שרות 2, כי זה בניין מגורים ולא מבנה ציבור", ok: false,
+      why: "רמות השרות לא נקבעות לפי סוג הבניין אלא לפי הגדרת הרשות המקומית, ובהעדר הגדרה חלה רמה 1." },
+    { t: "אין רמות שרות בחניון פרטי, המידות אחידות לכל חניון", ok: false,
+      why: "יש שלוש רמות שרות, והן משנות את כל טבלת המידות. רמה 1 דורשת תאים רחבים יותר מרמה 3 באותו רוחב מעבר." },
+  ],
+  where: "פרק 26, סעיף ב.4, עמוד 293",
+};
+
+/* ---------------------- מצב ---------------------- */
+let S = null;
+
+function freshState() {
+  const bays = [];
+  B.rows.forEach((row, ri) => row.spans.forEach((sp, si) => {
+    bays.push({ id: ri + "-" + si, row: ri, x0: sp.x0, x1: sp.x1, clear: sp.clear,
+                y0: row.y0, y1: row.y1, stalls: [] });
+  }));
+  return { phase: "level", level: null, levelPick: null, bays, verdict: null, attempt: 1 };
+}
+S = freshState();
+
+const totalStalls = () => S.bays.reduce((n, b) => n + b.stalls.length, 0);
+const totalAcc = () => S.bays.reduce((n, b) => n + b.stalls.filter((s) => s !== "regular").length, 0);
+
+/* ---------------------- סרגל עליון ---------------------- */
+function paintBar() {
+  $("pillLevel").textContent = S.level ? "רמת שרות " + S.level : "";
+  $("pillLevel").classList.toggle("hidden", !S.level);
+  const show = S.phase === "plan" || S.phase === "verdict";
+  $("pillCount").classList.toggle("hidden", !show);
+  $("pillAcc").classList.toggle("hidden", !show);
+  if (!show) return;
+  const n = totalStalls(), a = totalAcc();
+  $("pillCount").innerHTML = "תאים: <b>" + n + "</b> מתוך " + BRIEF.quota + " נדרשים";
+  $("pillCount").className = "pill " + (n >= BRIEF.quota ? "good" : "warn");
+  $("pillAcc").innerHTML = "נגישים: <b>" + a + "</b> מתוך " + BRIEF.accessibleRequired;
+  $("pillAcc").className = "pill " + (a >= BRIEF.accessibleRequired ? "good" : "warn");
+}
+
+/* ---------------------- מסך 1: תדריך ורמת שרות ---------------------- */
+function renderLevel() {
+  const picked = S.levelPick !== null;
+  $("wrap").innerHTML = `
+    <h1>תכנון חניון תת קרקעי</h1>
+    <div class="card brief">
+      <h2>התדריך</h2>
+      <p class="lead">קיבלת קומת מרתף קיימת. הקירות, רשת העמודים והמעבר כבר יצוקים ואי אפשר להזיז אותם.
+      התפקיד שלך הוא לתכנן בתוכם את תאי החניה.</p>
+      <dl>
+        <dt>שימוש</dt><dd>בניין מגורים, ${BRIEF.units} יחידות דיור</dd>
+        <dt>אזור מתע"ן</dt><dd>אזור ${BRIEF.zone}</dd>
+        <dt>מכסה שקבעה הוועדה</dt><dd>${BRIEF.quotaPerUnit} מקומות ליחידת דיור, כלומר ${BRIEF.quota} מקומות</dd>
+        <dt>מתוכם נגישים</dt><dd>${BRIEF.accessibleRequired}</dd>
+        <dt>רוחב המעבר בקומה</dt><dd>${B.aisle.width.toFixed(2)} מ' (נקבע מהמרחק בין שתי שורות התאים)</dd>
+      </dl>
+    </div>
+    <div class="card">
+      <h2>${LEVEL_Q.q}</h2>
+      <p class="lead" style="font-size:16px">התשובה נמצאת בספר. לפני שאתה בוחר, תפתח את פרק 26.</p>
+      <div class="answers" id="lvlans"></div>
+      <div id="lvlafter"></div>
+    </div>`;
+  const box = $("lvlans");
+  box.innerHTML = LEVEL_Q.options.map((o, i) => {
+    let cls = "ans";
+    if (picked) {
+      if (o.ok) cls += " right";
+      else if (i === S.levelPick) cls += " wrong";
+      else cls += " dim";
+    }
+    return `<button class="${cls}" data-i="${i}" ${picked ? "disabled" : ""}>
+      <span class="n">${i + 1}</span><span>${o.t}</span></button>`;
+  }).join("");
+  if (!picked) {
+    box.querySelectorAll(".ans").forEach((b) => {
+      b.onclick = () => { S.levelPick = +b.dataset.i; render(); };
+    });
+  } else {
+    const o = LEVEL_Q.options[S.levelPick];
+    $("lvlafter").innerHTML = `
+      <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">
+        <div class="booknote"><b>איפה זה בספר:</b> ${LEVEL_Q.where}</div>
+        <div class="explain">${o.why}</div>
+        <button class="go" id="toPlan">${o.ok ? "לתכנון" : "ממשיכים לתכנון לפי רמת שרות 1"}</button>
+      </div>`;
+    $("toPlan").onclick = () => { S.level = 1; S.phase = "plan"; render(); };
+  }
+  paintBar();
+}
+
+/* ---------------------- ציור התוכנית ---------------------- */
+const PAD = 1.2;
+function planSvg(readonly) {
+  const W = B.width + PAD * 2, H = B.height + PAD * 2;
+  const sy = (y) => (B.height - y) + PAD;          // הופכים ציר Y לציור
+  let s = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"
+    style="aspect-ratio:${W}/${H}">`;
+
+  // רצפת המרתף
+  s += `<rect x="0" y="0" width="${W}" height="${H}" fill="#141b28"/>`;
+  s += `<rect x="${PAD}" y="${sy(B.height)}" width="${B.width}" height="${B.height}"
+         fill="#1b2434" stroke="#2c3a52" stroke-width="0.06"/>`;
+
+  // המעבר
+  const a = B.aisle;
+  s += `<rect x="${PAD}" y="${sy(a.y1)}" width="${B.width}" height="${a.y1 - a.y0}"
+         fill="#22304a" opacity="0.85"/>`;
+  s += `<text x="${PAD + B.width / 2}" y="${sy((a.y0 + a.y1) / 2) + 0.28}" fill="#7fb2e6"
+         font-size="0.75" text-anchor="middle" font-family="Segoe UI,Arial">מעבר ${a.width.toFixed(2)}</text>`;
+
+  // קירות
+  B.walls.forEach((w) => {
+    s += `<line x1="${PAD + w[0]}" y1="${sy(w[1])}" x2="${PAD + w[2]}" y2="${sy(w[3])}"
+           stroke="#8ea2bf" stroke-width="0.22" stroke-linecap="butt"/>`;
+  });
+  // גב שורת התאים התחתונה, הוא הגבול של המודול
+  s += `<line x1="${PAD}" y1="${sy(0)}" x2="${PAD + B.width}" y2="${sy(0)}"
+         stroke="#8ea2bf" stroke-width="0.22"/>`;
+
+  // מפרצים ותאים
+  S.bays.forEach((bay) => {
+    const v = S.verdict ? S.verdict.bays[bay.id] : null;
+    const stroke = v ? (v.legal ? "#28c076" : "#e5484d") : "#3b4a66";
+    s += `<rect x="${PAD + bay.x0}" y="${sy(bay.y1)}" width="${bay.clear}" height="${bay.y1 - bay.y0}"
+           fill="none" stroke="${stroke}" stroke-width="0.09" stroke-dasharray="0.4 0.3"/>`;
+    // התאים עצמם, במידה שנדרשת לכל אחד
+    if (bay.stalls.length) {
+      const parts = stallWidths(bay);
+      let x = bay.x0;
+      parts.forEach((p, i) => {
+        const fill = p.kind === "regular" ? "rgba(78,163,240,.42)" : "rgba(142,107,255,.5)";
+        const ec = p.kind === "regular" ? "#4ea3f0" : "#8e6bff";
+        s += `<rect class="stall" data-bay="${bay.id}" data-i="${i}"
+               x="${PAD + x}" y="${sy(bay.y1)}" width="${p.w}" height="${bay.y1 - bay.y0}"
+               fill="${fill}" stroke="${ec}" stroke-width="0.05"
+               style="cursor:${readonly ? "default" : "pointer"}"/>`;
+        s += `<text x="${PAD + x + p.w / 2}" y="${sy((bay.y0 + bay.y1) / 2) + 0.2}" fill="#dce6f5"
+               font-size="0.52" text-anchor="middle" pointer-events="none"
+               font-family="Segoe UI,Arial">${p.w.toFixed(2)}</text>`;
+        x += p.w;
+      });
+    }
+  });
+
+  // עמודים
+  B.columns.forEach((c) => {
+    s += `<rect x="${PAD + c.x0}" y="${sy(c.y0 + c.h)}" width="${c.w}" height="${c.h}"
+           fill="#c0392b"/>`;
+  });
+
+  s += `</svg>`;
+  return s;
+}
+
+/** רוחב כל תא במפרץ לפי המודל: חיצוניים ליד עמוד, פנימיים בשטח פנוי. */
+function stallWidths(bay) {
+  const res = R.checkMixedBay({ level: S.level, aisle: B.aisle.width,
+                               stalls: bay.stalls, clearSpan: bay.clear });
+  return res.parts.map((p, i) => ({ kind: bay.stalls[i], w: p.w, why: p.why }));
+}
+
+/* ---------------------- מסך 2: תכנון ---------------------- */
+function renderPlan() {
+  $("wrap").innerHTML = `
+    <div class="card">
+      <h2>הקומה שקיבלת</h2>
+      <p class="lead" style="font-size:16px">בכל מפרץ בין שני עמודים תחליט כמה תאים להכניס.
+      לחיצה על תא הופכת אותו לתא נגיש ובחזרה. הבדיקה מול הספר תיעשה רק כשתגיש.</p>
+      <div class="planwrap" id="plan"></div>
+      <div class="legend">
+        <span><i style="background:rgba(78,163,240,.6)"></i>תא רגיל</span>
+        <span><i style="background:rgba(142,107,255,.7)"></i>תא נגיש</span>
+        <span><i style="background:#c0392b"></i>עמוד קיים</span>
+        <span><i style="background:#22304a"></i>מעבר</span>
+      </div>
+      <div class="baytools" id="tools"></div>
+    </div>
+    <div class="row">
+      <button class="go" id="submit">הגשה לבדיקת רשות הרישוי</button>
+      <button class="go ghost" id="clear">ניקוי הכל</button>
+    </div>`;
+  $("plan").innerHTML = planSvg(false);
+  $("tools").innerHTML = S.bays.map((b, i) =>
+    `<span class="pill">מפרץ ${i + 1} (${b.clear.toFixed(2)})
+      <button class="tbtn" data-b="${b.id}" data-d="-1" style="margin-inline-start:6px">פחות</button>
+      <b style="margin:0 6px">${b.stalls.length}</b>
+      <button class="tbtn" data-b="${b.id}" data-d="1">עוד</button></span>`).join("");
+  document.querySelectorAll(".tbtn").forEach((btn) => {
+    btn.style.cssText += "background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:13px;font-family:inherit";
+    btn.onclick = () => {
+      const bay = S.bays.find((x) => x.id === btn.dataset.b);
+      const d = +btn.dataset.d;
+      if (d > 0) { if (bay.stalls.length < 6) bay.stalls.push("regular"); }
+      else bay.stalls.pop();
+      render();
+    };
+  });
+  $("plan").querySelectorAll(".stall").forEach((el) => {
+    el.onclick = () => {
+      const bay = S.bays.find((x) => x.id === el.dataset.bay);
+      const i = +el.dataset.i;
+      const cur = bay.stalls[i];
+      bay.stalls[i] = cur === "regular" ? "accessible" : cur === "accessible" ? "accessibleTall" : "regular";
+      render();
+    };
+  });
+  $("submit").onclick = () => { S.verdict = judge(); S.phase = "verdict"; render(); };
+  $("clear").onclick = () => { S.bays.forEach((b) => (b.stalls = [])); render(); };
+  paintBar();
+}
+
+/* ---------------------- הפסיקה ---------------------- */
+function judge() {
+  const bays = {};
+  let legalStalls = 0, illegalBays = 0;
+  S.bays.forEach((b) => {
+    const res = R.checkMixedBay({ level: S.level, aisle: B.aisle.width,
+                                 stalls: b.stalls, clearSpan: b.clear });
+    bays[b.id] = res;
+    if (res.legal) legalStalls += b.stalls.length;
+    else illegalBays++;
+  });
+  const acc = S.bays.reduce((n, b) => bays[b.id].legal
+    ? n + b.stalls.filter((s) => s !== "regular").length : n, 0);
+  return {
+    bays, legalStalls, illegalBays, acc,
+    quotaOk: legalStalls >= BRIEF.quota,
+    accOk: acc >= BRIEF.accessibleRequired,
+  };
+}
+
+function renderVerdict() {
+  const v = S.verdict;
+  const rows = S.bays.map((b, i) => {
+    const r = v.bays[b.id];
+    if (!b.stalls.length) return null;
+    const calc = r.parts.map((p) => p.w.toFixed(2)).join(" + ") + " = " + r.need.toFixed(2);
+    return `<div class="vrow ${r.legal ? "good" : "bad"}">
+      <div class="h">${r.legal ? "עובר" : "נפסל"} · מפרץ ${i + 1}, מרווח פנוי ${b.clear.toFixed(2)} מ'</div>
+      <div class="calc">${calc}</div>
+      <div style="color:var(--dim);font-size:14px;margin-top:3px">
+        ${r.parts.map((p) => p.why).join(" · ")}</div>
+      ${r.legal ? "" : `<div style="color:#ffb4b6;margin-top:5px">${r.note}</div>`}
+    </div>`;
+  }).filter(Boolean).join("");
+
+  const empty = S.bays.filter((b) => !b.stalls.length).length;
+  $("wrap").innerHTML = `
+    <h1>${v.quotaOk && v.accOk && !v.illegalBays ? "התכנון אושר" : "התכנון חוזר לתיקון"}</h1>
+    <div class="sum">
+      <div class="stat ${v.quotaOk ? "good" : "bad"}"><div class="k">תאים חוקיים</div>
+        <div class="v">${v.legalStalls}</div><div class="k">מתוך ${BRIEF.quota} נדרשים</div></div>
+      <div class="stat ${v.accOk ? "good" : "bad"}"><div class="k">מתוכם נגישים</div>
+        <div class="v">${v.acc}</div><div class="k">מתוך ${BRIEF.accessibleRequired} נדרשים</div></div>
+      <div class="stat ${v.illegalBays ? "bad" : "good"}"><div class="k">מפרצים שנפסלו</div>
+        <div class="v">${v.illegalBays}</div></div>
+    </div>
+    <div class="planwrap" id="plan"></div>
+    <div class="booknote"><b>הבדיקה נעשתה מול:</b> פרק 26, טבלה ב.4 בעמוד 294 לרוחב התא לפי רוחב המעבר,
+      וסעיף ב.3 בעמוד 293 לרוחב תא נגיש. רוחב המעבר בקומה הוא ${B.aisle.width.toFixed(2)} מ',
+      ולכן ברמת שרות ${S.level} תא ליד עמוד דורש
+      ${R.requiredWidth(S.level, B.aisle.width, "beside", 1).width.toFixed(2)} מ'
+      ותא בשטח פנוי ${R.requiredWidth(S.level, B.aisle.width, "open", 1).width.toFixed(2)} מ'.</div>
+    ${empty ? `<div class="explain">${empty} מפרצים נשארו ריקים.</div>` : ""}
+    <h2 style="margin-top:6px">מפרץ אחר מפרץ</h2>
+    <div class="verdict">${rows || '<div class="vrow">לא סימנת אף תא.</div>'}</div>
+    <div class="row" style="margin-top:6px">
+      <button class="go" id="back">חזרה לתיקון התכנון</button>
+      <button class="go ghost" id="restart">להתחיל מחדש</button>
+    </div>`;
+  $("plan").innerHTML = planSvg(true);
+  $("back").onclick = () => { S.phase = "plan"; S.verdict = null; S.attempt++; render(); };
+  $("restart").onclick = () => { S = freshState(); render(); };
+  paintBar();
+}
+
+/* ---------------------- ניתוב ---------------------- */
+function render() {
+  if (S.phase === "level") return renderLevel();
+  if (S.phase === "plan") return renderPlan();
+  return renderVerdict();
+}
+render();
+</script>
+</body>
+</html>
